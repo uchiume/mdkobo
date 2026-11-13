@@ -1,0 +1,41 @@
+MIT License
+
+Copyright (c) 2026 matsuda.dkobo
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+--------------------------------------------------------------------------------
+Third-party notices
+--------------------------------------------------------------------------------
+
+Parts of this software are based on code from opengl-tutorial.org
+(https://www.opengl-tutorial.org/, https://github.com/opengl-tutorials/ogl),
+which is distributed under the WTFPL (Do What The F*ck You Want To Public
+License, Version 2):
+
+  - mdkobo/res/scene.vert, mdkobo/res/scene.frag
+    (based on the "StandardShading" shaders)
+  - CMDKScene::ReIndexObjModel and CMDKScene::getSimilarVertexIndex_fast
+    in mdkobo/mdkscene.cpp (based on common/vboindexer.cpp)
+
+The following are not included in this repository and are used under their
+own licenses:
+
+  - GLM (https://github.com/g-truc/glm) - The Happy Bunny License or MIT License
+  - Vulkan SDK headers and loader (https://vulkan.lunarg.com/) - Apache License 2.0

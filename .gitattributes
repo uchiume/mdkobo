@@ -1,0 +1,6 @@
+# mdkobo.rc is UTF-16 LE; keep it byte-for-byte
+*.rc   -text diff
+*.tga  binary
+*.png  binary
+*.ico  binary
+*.xcf  binary

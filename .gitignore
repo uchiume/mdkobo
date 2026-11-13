@@ -1,0 +1,16 @@
+# Visual Studio
+.vs/
+x64/
+Debug/
+Release/
+*.vcxproj.user
+*.aps
+*.VC.db
+*.VC.opendb
+*.ipch
+
+# Editor settings (machine-specific)
+.vscode/
+
+# Validation layer logs
+validation*.txt

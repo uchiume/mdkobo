@@ -33,6 +33,9 @@ License, Version 2):
     (based on the "StandardShading" shaders)
   - CMDKScene::ReIndexObjModel and CMDKScene::getSimilarVertexIndex_fast
     in mdkobo/mdkscene.cpp (based on common/vboindexer.cpp)
+  - The mouse view controls of CMDKView (InitializeVP,
+    computeMatricesFromInputs, and related functions) in mdkobo/mdkview.cpp
+    (based on common/controls.cpp)
 
 The following are not included in this repository and are used under their
 own licenses:

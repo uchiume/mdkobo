@@ -11,7 +11,8 @@ The model, texture, and shaders are all embedded in the executable as resources,
   - Supports triangle and quad faces (quads are split into two triangles)
 - Loads TGA textures (32-bit, uncompressed or RLE-compressed)
 - GLSL shaders are compiled to SPIR-V at build time and embedded as resources
-- Handles window resizing and minimizing (the swapchain is recreated)
+- Mouse controls to orbit the camera around the model and zoom in and out
+- Handles window resizing and minimizing (the swapchain is recreated, and the aspect ratio follows the window)
 
 ## Requirements
 
@@ -66,6 +67,13 @@ The executable is written to `x64\Debug\mdkobo.exe` or `x64\Release\mdkobo.exe`.
 
 Run `mdkobo.exe` to show a textured cube. Close the window to exit.
 
+### Mouse controls
+
+| Action | Effect |
+| --- | --- |
+| Drag with the left button | Orbit the camera around the origin |
+| Mouse wheel | Move the camera closer to or farther from the origin (the field of view stays at 45°) |
+
 ### Using the Vulkan validation layer
 
 The validation layer is not enabled in code. To use it, set these environment variables before starting the program:
@@ -82,7 +90,7 @@ x64\Debug\mdkobo.exe
 | File | Contents |
 | --- | --- |
 | `mdkobo\mdkobo.cpp` | Entry point and message loop |
-| `mdkobo\mdkview.cpp` / `.h` | `CMDKView`: window, Vulkan device, swapchain, and frame rendering |
+| `mdkobo\mdkview.cpp` / `.h` | `CMDKView`: window, mouse controls, Vulkan device, swapchain, and frame rendering |
 | `mdkobo\mdkscene.cpp` / `.h` | `CMDKScene`: model and texture loading, pipeline, and scene drawing |
 | `mdkobo\mdkobo.rc` / `resource.h` | Resources (icon, model, texture, shaders) |
 | `mdkobo\res\scene.vert` / `scene.frag` | GLSL shaders (compiled to SPIR-V with `glslc` at build time) |
@@ -92,9 +100,8 @@ x64\Debug\mdkobo.exe
 ## Known limitations
 
 - Texture mipmaps are not generated.
-- When the window is resized, the aspect ratio stays as it was at startup, so the image is stretched.
 - Indices are 16-bit, so models with more than 65,536 unique vertices are not displayed correctly.
-- What is shown (model, camera, light) is fixed in the code and resources.
+- The model, the initial camera position, and the light are fixed in the code and resources.
 
 ## License
 

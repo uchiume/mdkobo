@@ -4,6 +4,8 @@
 #include "mdkview.h"
 #include "mdkscene.h"
 #include <vulkan/vulkan_win32.h>
+#include <glm/gtc/matrix_transform.hpp>
+#include <windowsx.h>
 #include <algorithm>
 
 CMDKView::CMDKView()
@@ -27,6 +29,16 @@ CMDKView::CMDKView()
 	, m_depthMemory(VK_NULL_HANDLE)
 	, m_depthImageView(VK_NULL_HANDLE)
 	, m_pScene(NULL)
+	, m_ViewMatrix(1.0f)
+	, m_ProjectionMatrix(1.0f)
+	// 初期の視点は (4,3,-3)。注視点 (0,0,0) への向き (-4,-3,3) を角度に直す
+	, m_fHorizontalAngle(atan2f(-4.0f, 3.0f))
+	, m_fVerticalAngle(asinf(-3.0f / sqrtf(34.0f)))
+	, m_fDistance(sqrtf(34.0f))
+	, m_fInitialFoV(45.0f)
+	, m_fMouseSpeed(0.002f)
+	, m_dPrevX(0.0)
+	, m_dPrevY(0.0)
 	, m_nWidth(0)
 	, m_nHeight(0)
 {
@@ -60,6 +72,21 @@ LRESULT CALLBACK CMDKView::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
 	case WM_DESTROY:
 		thisPtr->TermVulkan();
 		::PostQuitMessage(0);
+		break;
+	case WM_LBUTTONDOWN:
+		// ウィンドウの外までドラッグしても続けて受け取る
+		::SetCapture(hWnd);
+		thisPtr->OnLButtonDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+		break;
+	case WM_MOUSEMOVE:
+		thisPtr->OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), (DWORD)wParam);
+		break;
+	case WM_LBUTTONUP:
+		thisPtr->OnLButtonUp(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+		::ReleaseCapture();
+		break;
+	case WM_MOUSEWHEEL:
+		thisPtr->OnMouseWheel(GET_WHEEL_DELTA_WPARAM(wParam));
 		break;
 	default:
 		break;
@@ -295,6 +322,7 @@ bool CMDKView::InitVulkan()
 	{
 		return false;
 	}
+	InitializeVP();
 
 	MDKVulkanContext context = { m_physicalDevice, m_device, m_queue, m_commandPool, m_renderPass };
 	m_pScene = new CMDKScene();
@@ -510,7 +538,9 @@ void CMDKView::RecreateSwapchain()
 	if (!CreateSwapchain())
 	{
 		DestroySwapchain();	// 次の Draw でもう一度作る
+		return;
 	}
+	InitializeVP();	// 縦横比が変わるので投影行列を作り直す
 }
 
 uint32_t CMDKView::FindMemoryType(uint32_t nTypeBits, VkMemoryPropertyFlags properties)
@@ -557,6 +587,9 @@ void CMDKView::Draw()
 		return;
 	}
 	vkResetFences(m_device, 1, &m_inFlight);
+
+	// 前のフレームの描画は終わっているので、ユニフォームバッファを書き換えてよい
+	m_pScene->SetViewProjection(getViewMatrix(), getProjectionMatrix());
 
 	vkResetCommandBuffer(m_commandBuffer, 0);
 	VkCommandBufferBeginInfo beginInfo = {};
@@ -605,4 +638,81 @@ void CMDKView::Draw()
 	{
 		RecreateSwapchain();
 	}
+}
+
+glm::mat4 CMDKView::getViewMatrix()
+{
+	return m_ViewMatrix;
+}
+
+glm::mat4 CMDKView::getProjectionMatrix()
+{
+	return m_ProjectionMatrix;
+}
+
+void CMDKView::InitializeVP()
+{
+	// Projection matrix : 45 Field of View, ウィンドウの縦横比, display range : 0.1 unit <-> 100 units
+	// Vulkan は深度が 0..1 で、Y 軸が下向き
+	float fAspect = (m_extent.height > 0) ? (float)m_extent.width / (float)m_extent.height : 4.0f / 3.0f;
+	m_ProjectionMatrix = glm::perspectiveRH_ZO(glm::radians(m_fInitialFoV), fAspect, 0.1f, 100.0f);
+	m_ProjectionMatrix[1][1] *= -1.0f;
+
+	glm::vec3 direction(
+		cos(m_fVerticalAngle) * sin(m_fHorizontalAngle),
+		sin(m_fVerticalAngle),
+		cos(m_fVerticalAngle) * cos(m_fHorizontalAngle)
+	);
+	// Right vector
+	glm::vec3 right = glm::vec3(
+		sin(m_fHorizontalAngle - 3.14f / 2.0f),
+		0,
+		cos(m_fHorizontalAngle - 3.14f / 2.0f)
+	);
+	// Up vector
+	glm::vec3 up = glm::cross(right, direction);
+
+	glm::vec3 target = glm::vec3(0, 0, 0);
+	glm::vec3 dist = direction * m_fDistance;
+	m_ViewMatrix = glm::lookAt(target - dist, target, up);
+}
+
+void CMDKView::OnLButtonDown(int pixelX, int pixelY)
+{
+	m_dPrevX = (double)pixelX;
+	m_dPrevY = (double)pixelY;
+}
+
+void CMDKView::OnMouseMove(int pixelX, int pixelY, DWORD flags)
+{
+	if (flags & MK_LBUTTON)
+	{
+		computeMatricesFromInputs(pixelX, pixelY);
+	}
+}
+
+void CMDKView::OnLButtonUp(int pixelX, int pixelY)
+{
+}
+
+void CMDKView::OnMouseWheel(int nDelta)
+{
+	// 奥に回すと近づき、手前に回すと遠ざかる (1 ノッチで 10%)。視野角は変えない
+	m_fDistance *= powf(0.9f, (float)nDelta / WHEEL_DELTA);
+	// 立方体の中に入らないように、また遠クリップ面 (100) を越えないように制限する
+	m_fDistance = (std::max)(2.0f, (std::min)(50.0f, m_fDistance));
+	InitializeVP();
+}
+
+void CMDKView::computeMatricesFromInputs(int pixelX, int pixelY)
+{
+	// Compute new orientation
+	m_fHorizontalAngle += m_fMouseSpeed * float(m_dPrevX - pixelX);
+	m_fVerticalAngle += m_fMouseSpeed * float(m_dPrevY - pixelY);
+
+	// 角度から投影行列とビュー行列を作る
+	InitializeVP();
+
+	m_dPrevX = pixelX;
+	m_dPrevY = pixelY;
 }

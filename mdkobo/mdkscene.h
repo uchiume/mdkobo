@@ -66,6 +66,7 @@ public:
 	bool Init(const MDKVulkanContext& context, int nWidth, int nHeight);
 	void Draw(VkCommandBuffer commandBuffer, VkExtent2D extent);
 	void Term();
+	void SetViewProjection(const glm::mat4& View, const glm::mat4& Projection);
 
 private:
 	MDKVulkanContext m_context;

@@ -85,7 +85,7 @@ bool CMDKScene::Init(const MDKVulkanContext& context, int nWidth, int nHeight)
 	// Our ModelViewProjection : multiplication of our 3 matrices
 	m_MVP = Projection * m_View * m_Model; // Remember, matrix multiplication is the other way around
 
-	// 値は変わらないので、ユニフォームバッファは最初に 1 回だけ書き込む
+	// 初期値を書き込んでおく (ビューが変わったら SetViewProjection で書き換える)
 	SceneUniforms uniforms;
 	uniforms.MVP = m_MVP;
 	uniforms.V = m_View;
@@ -118,6 +118,31 @@ bool CMDKScene::Init(const MDKVulkanContext& context, int nWidth, int nHeight)
 	}
 
 	return true;
+}
+
+// GPU がユニフォームバッファを使っていないとき (フェンスを待った後) に呼ぶこと
+void CMDKScene::SetViewProjection(const glm::mat4& View, const glm::mat4& Projection)
+{
+	if (m_uniformMemory == VK_NULL_HANDLE)
+	{
+		return;
+	}
+
+	m_View = View;
+	m_MVP = Projection * m_View * m_Model;
+
+	SceneUniforms uniforms;
+	uniforms.MVP = m_MVP;
+	uniforms.V = m_View;
+	uniforms.M = m_Model;
+	uniforms.LightPosition_worldspace = glm::vec4(4, 4, -4, 1);
+
+	void* pMapped = NULL;
+	if (vkMapMemory(m_context.device, m_uniformMemory, 0, sizeof(uniforms), 0, &pMapped) == VK_SUCCESS)
+	{
+		memcpy(pMapped, &uniforms, sizeof(uniforms));
+		vkUnmapMemory(m_context.device, m_uniformMemory);
+	}
 }
 
 bool CMDKScene::LoadTexture(int nResID)
